@@ -19,27 +19,40 @@ namespace MyTool_NamingConventionCheck
 			InitializeComponent();
 		}
 
-		// 定数の定義
-		private const string txtChkPart = "NameChkPart.txt";		// パーティクル
-		private const string txtChkMat = "NameChkMat.txt";			// マテリアル
-		private const string txtChkMatFunc = "NameChkMatFunc.txt";	// マテリアル関数
-		private const string txtChkMatInst = "NameChkMatInst.txt";	// マテリアルインスタンス
-		private const string txtChkSMesh = "NameChkSMesh.txt";		// スタティックメッシュ
-		private const string txtChkTex = "NameChkTex.txt";			// テクスチャ
-		private const string txtChkBP = "NameChkBP.txt";			// ブループリント
-		private const string txtChkDA = "NameChkDA.txt";			// データアセット
+		// 定数の定義：命名規則を保存したテキストファイル名
+		private const string chkTextLevel = "NameChk_Level.txt";		// レベル
+		private const string chkTextBP = "NameChk_BP.txt";				// ブループリント
+		private const string chkTextTex = "NameChk_Tex.txt";			// テクスチャ
+		private const string chkTextMat = "NameChk_Mat.txt";			// マテリアル
+		private const string chkTextMatFunc = "NameChk_MatFunc.txt";	// マテリアル関数
+		private const string chkTextMatInst = "NameChk_MatInst.txt";    // マテリアルインスタンス
+		private const string chkTextStMesh = "NameChk_StMesh.txt";		// スタティックメッシュ
+		private const string chkTextSkMesh = "NameChk_SkMesh.txt";		// スケルタルメッシュ
+		private const string chkTextPart = "NameChk_Part.txt";			// パーティクル
+		private const string chkTextDA = "NameChk_DA.txt";              // データアセット
+		// 定数の定義：UE4のアセットタイプ情報
+		private const string typeLevel = "World";						// レベル
+		private const string typeBP = "Blueprint";                      // ブループリント
+		private const string typeTex = "Texture2D";                     // テクスチャ
+		private const string typeMat = "Material";                      // マテリアル
+		private const string typeMatFunc = "MaterialFunction";          // マテリアル関数
+		private const string typeMatInst = "MaterialInstanceConstant";  // マテリアルインスタンス
+		private const string typeStMesh = "StaticMesh";                 // スタティックメッシュ
+		private const string typeSkMesh = "SkeletalMesh";               // スケルタルメッシュ
+		private const string typePart = "ParticleSystem";               // パーティクル
+		private const string typeDA = "";                               // データアセット
 
 		// 変数の定義
 		private bool exist = false; // 正規表現の定義ファイルが存在するかの判定用
 
 		// Listの定義
-		List<string> listRule = new List<string>();		// マッチさせたい正規表現のリスト
-		List<string> listPass = new List<string>();		// パス部分だけ抽出したリスト
-		List<string> listName = new List<string>();     // 名前部分だけ抽出したリスト
-		List<string> listOutput = new List<string>();	// 出力する結果のリスト
+		List<string> listRule = new List<string>();			// マッチさせたい正規表現のリスト
+		List<string> listPass = new List<string>();			// パス部分だけ抽出したリスト
+		List<string> listName = new List<string>();			// 名前部分だけ抽出したリスト
+		List<string> listOutput = new List<string>();		// 出力する結果のリスト
 
 		// 関数：命名規則の定義ファイルを読み込んでListに代入
-		private List<string> txtRead(string txt)
+		private List<string> getNamingRule(string txt)
 		{
 			// 指定ファイルがある場合
 			if (File.Exists(txt))
@@ -68,7 +81,7 @@ namespace MyTool_NamingConventionCheck
 			// 指定ファイルが無い場合
 			else
 			{
-				// 判定をTrueにする
+				// 判定をFalseにする
 				exist = false;
 
 				MessageBox.Show("命名規則の定義ファイル " + txt +" がありません");
@@ -76,14 +89,14 @@ namespace MyTool_NamingConventionCheck
 			}
 		}
 
-		// 関数：TextBox1の中身をパスと名前別々にListに格納
-		private void getText ()
+		// 関数：TextBox1のアセット参照情報をパスと名前別々にListに格納
+		private void getRefelence(string assetType)
 		{
 			// 正規表現の定義ファイルがある判定の時だけ実行
 			if (exist == true)
 			{
 				// パスと名前を取り出す正規表現を定義(UE4のリファレンス情報専用の処理)
-				Regex reg = new Regex(".*?'/Game/(?<pass>(.*?/)*)(?<name>[^.]+)",
+				Regex reg = new Regex(assetType + "'/Game/(?<pass>(.*?/)*)(?<name>[^.]+)",
 					RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
 				// パスと名前別々にListに格納
@@ -94,6 +107,12 @@ namespace MyTool_NamingConventionCheck
 					listPass.Add(pass);
 					listName.Add(name);
 					listOutput.Add(pass + "\t" + name);
+				}
+
+				// TextBox1内に全く見つからない場合はメッセージを出す
+				if (listPass.Count == 0)
+				{
+					MessageBox.Show("対応する種類のアセットが見つかりません");
 				}
 			}
 		}
@@ -127,6 +146,9 @@ namespace MyTool_NamingConventionCheck
 					}
 				}
 
+				// 結果の数をラベルに表示
+				labelCount2.Text = "結果の数： " + listOutput.Count.ToString();
+
 				// 結果をTextBox2に表示
 				foreach (string s in listOutput)
 				{
@@ -141,63 +163,13 @@ namespace MyTool_NamingConventionCheck
 			}
 		}
 
-		// ボタン：Particle チェック
-		private void btn_Particle_Click(object sender, EventArgs e)
+		// ボタン：Level チェック
+		private void btn_Level_Click(object sender, EventArgs e)
 		{
 			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkPart);
+			listRule = getNamingRule(chkTextLevel);
 			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
-		}
-		// ボタン：Material チェック
-		private void btn_Mat_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkMat);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
-		}
-		// ボタン：Material Function チェック
-		private void btn_MatFunc_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkMatFunc);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
-		}
-		// ボタン：Material Instance チェック
-		private void btn_MatInst_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkMatInst);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
-		}
-		// ボタン：Static Mesh チェック
-		private void btn_SMesh_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkSMesh);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
-		}
-		// ボタン：Texture チェック
-		private void btn_Tex_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkTex);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
+			getRefelence(typeLevel);
 			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
 		}
@@ -205,9 +177,79 @@ namespace MyTool_NamingConventionCheck
 		private void btn_BP_Click(object sender, EventArgs e)
 		{
 			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkBP);
+			listRule = getNamingRule(chkTextBP);
 			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
+			getRefelence(typeBP);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Texture チェック
+		private void btn_Tex_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextTex);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeTex);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Material チェック
+		private void btn_Mat_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextMat);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeMat);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Material Function チェック
+		private void btn_MatFunc_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextMatFunc);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeMatFunc);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Material Instance チェック
+		private void btn_MatInst_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextMatInst);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeMatInst);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Static Mesh チェック
+		private void btn_StMesh_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextStMesh);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeStMesh);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Skeletal Mesh チェック
+		private void btn_SkMesh_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextSkMesh);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typeSkMesh);
+			// 命名規則に引っ掛かるアセットをリストアップ
+			doRegex();
+		}
+		// ボタン：Particle チェック
+		private void btn_Part_Click(object sender, EventArgs e)
+		{
+			// 命名規則の定義ファイルを読み込んでListに代入
+			listRule = getNamingRule(chkTextPart);
+			// TextBox1の中身をパスと名前別々にListに格納
+			getRefelence(typePart);
 			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
 		}
@@ -215,9 +257,9 @@ namespace MyTool_NamingConventionCheck
 		private void btn_DA_Click(object sender, EventArgs e)
 		{
 			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = txtRead(txtChkDA);
+			listRule = getNamingRule(chkTextDA);
 			// TextBox1の中身をパスと名前別々にListに格納
-			getText();
+			getRefelence(".*?");
 			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
 		}
@@ -244,10 +286,6 @@ namespace MyTool_NamingConventionCheck
 		private void textBox1_TextChanged(object sender, EventArgs e)
 		{
 			labelCount1.Text = "行数： " + textBox1.Lines.Length.ToString();
-		}
-		private void textBox2_TextChanged(object sender, EventArgs e)
-		{
-			labelCount2.Text = "行数： " + textBox2.Lines.Length.ToString();
 		}
 	}
 }
