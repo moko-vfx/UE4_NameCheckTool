@@ -29,7 +29,6 @@ namespace MyTool_NamingConventionCheck
 		private const string chkTextStMesh = "NameChk_StMesh.txt";		// スタティックメッシュ
 		private const string chkTextSkMesh = "NameChk_SkMesh.txt";		// スケルタルメッシュ
 		private const string chkTextPart = "NameChk_Part.txt";			// パーティクル
-		private const string chkTextDA = "NameChk_DA.txt";              // データアセット
 		// 定数の定義：UE4のアセットタイプ情報
 		private const string typeLevel = "World";						// レベル
 		private const string typeBP = "Blueprint";                      // ブループリント
@@ -40,16 +39,16 @@ namespace MyTool_NamingConventionCheck
 		private const string typeStMesh = "StaticMesh";                 // スタティックメッシュ
 		private const string typeSkMesh = "SkeletalMesh";               // スケルタルメッシュ
 		private const string typePart = "ParticleSystem";               // パーティクル
-		private const string typeDA = "";                               // データアセット
 
 		// 変数の定義
 		private bool exist = false; // 正規表現の定義ファイルが存在するかの判定用
+		private int maxRows = 0;	// Listの最大の行数を保持する
 
 		// Listの定義
 		List<string> listRule = new List<string>();			// マッチさせたい正規表現のリスト
 		List<string> listPass = new List<string>();			// パス部分だけ抽出したリスト
-		List<string> listName = new List<string>();			// 名前部分だけ抽出したリスト
-		List<string> listOutput = new List<string>();		// 出力する結果のリスト
+		List<string> listName = new List<string>();         // 名前部分だけ抽出したリスト
+		List<string> listResult = new List<string>();		// 結果のリスト
 
 		// 関数：命名規則の定義ファイルを読み込んでListに代入
 		private List<string> getNamingRule(string txt)
@@ -92,6 +91,11 @@ namespace MyTool_NamingConventionCheck
 		// 関数：TextBox1のアセット参照情報をパスと名前別々にListに格納
 		private void getRefelence(string assetType)
 		{
+			// Listをクリア
+			listPass.Clear();
+			listName.Clear();
+			listResult.Clear();
+
 			// 正規表現の定義ファイルがある判定の時だけ実行
 			if (exist == true)
 			{
@@ -99,21 +103,23 @@ namespace MyTool_NamingConventionCheck
 				Regex reg = new Regex(assetType + "'/Game/(?<pass>(.*?/)*)(?<name>[^.]+)",
 					RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-				// パスと名前別々にListに格納
+				// パスと名前を別々にListに格納
 				for (Match m = reg.Match(textBox1.Text); m.Success; m = m.NextMatch())
 				{
 					string pass = m.Groups["pass"].Value;
 					string name = m.Groups["name"].Value;
 					listPass.Add(pass);
 					listName.Add(name);
-					listOutput.Add(pass + "\t" + name);
+					listResult.Add(pass + name);
 				}
 
+				/*
 				// TextBox1内に全く見つからない場合はメッセージを出す
 				if (listPass.Count == 0)
 				{
 					MessageBox.Show("対応する種類のアセットが見つかりません");
 				}
+				*/
 			}
 		}
 
@@ -123,11 +129,6 @@ namespace MyTool_NamingConventionCheck
 			// 正規表現の定義ファイルがある判定の時だけ実行
 			if (exist == true)
 			{
-				// TextBox2をクリア
-				textBox2.ResetText();
-				// 桁表示をクリア
-				labelCount2.Text = "行数： " + "0";
-
 				// チェック文字列(正規表現)1つずつチェック
 				for (int i = 0; i < listRule.Count; i++)
 				{
@@ -141,127 +142,146 @@ namespace MyTool_NamingConventionCheck
 							// Listから該当要素を削除する
 							listPass.RemoveAt(i2);
 							listName.RemoveAt(i2);
-							listOutput.RemoveAt(i2);
+							listResult.RemoveAt(i2);
 						}
 					}
 				}
-
-				// 結果の数をラベルに表示
-				labelCount2.Text = "結果の数： " + listOutput.Count.ToString();
-
-				// 結果をTextBox2に表示
-				foreach (string s in listOutput)
-				{
-					textBox2.AppendText(s + "\r\n");
-				}
-
-				// Listを全てクリア
-				listRule.Clear();
-				listPass.Clear();
-				listName.Clear();
-				listOutput.Clear();
 			}
 		}
 
 		// ボタン：Level チェック
-		private void btn_Level_Click(object sender, EventArgs e)
+		private void btn_Check_Click(object sender, EventArgs e)
 		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			// DataGridViewをクリア
+			dataGridView1.Rows.Clear();
+
+			// アセットタイプごとにリストアップ
 			listRule = getNamingRule(chkTextLevel);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeLevel);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Blueprint チェック
-		private void btn_BP_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listLevel = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextBP);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeBP);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Texture チェック
-		private void btn_Tex_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listBP = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextTex);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeTex);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Material チェック
-		private void btn_Mat_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listTex = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextMat);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeMat);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Material Function チェック
-		private void btn_MatFunc_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listMat = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextMatFunc);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeMatFunc);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Material Instance チェック
-		private void btn_MatInst_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listMatFunc = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextMatInst);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeMatInst);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Static Mesh チェック
-		private void btn_StMesh_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listMatInst = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextStMesh);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeStMesh);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Skeletal Mesh チェック
-		private void btn_SkMesh_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listStMesh = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextSkMesh);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typeSkMesh);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
-		}
-		// ボタン：Particle チェック
-		private void btn_Part_Click(object sender, EventArgs e)
-		{
-			// 命名規則の定義ファイルを読み込んでListに代入
+			List<string> listSkMesh = new List<string>(listResult);
+
 			listRule = getNamingRule(chkTextPart);
-			// TextBox1の中身をパスと名前別々にListに格納
 			getRefelence(typePart);
-			// 命名規則に引っ掛かるアセットをリストアップ
 			doRegex();
+			List<string> listPart = new List<string>(listResult);
+
+			//Listの最大格納数を割り出す
+			maxRows = new List<int> {
+				listLevel.Count,
+				listBP.Count,
+				listTex.Count,
+				listMat.Count,
+				listMatFunc.Count,
+				listMatInst.Count,
+				listStMesh.Count,
+				listSkMesh.Count,
+				listPart.Count }.Max();
+
+			//Listの最大格納数だけ行を追加
+			for (int i = 0; i < maxRows; i++)
+			{
+				dataGridView1.Rows.Add();
+			}
+
+			// DataGridViewの各列にデータを入力
+			for (int i = 0; i < listLevel.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[0].Value = listLevel[i];
+			}
+			for (int i = 0; i < listBP.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[1].Value = listBP[i];
+			}
+			for (int i = 0; i < listTex.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[2].Value = listTex[i];
+			}
+			for (int i = 0; i < listMat.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[3].Value = listMat[i];
+			}
+			for (int i = 0; i < listMatFunc.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[4].Value = listMatFunc[i];
+			}
+			for (int i = 0; i < listMatInst.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[5].Value = listMatInst[i];
+			}
+			for (int i = 0; i < listStMesh.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[6].Value = listStMesh[i];
+			}
+			for (int i = 0; i < listSkMesh.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[7].Value = listSkMesh[i];
+			}
+			for (int i = 0; i < listPart.Count; i++)
+			{
+				dataGridView1.Rows[i].Cells[8].Value = listPart[i];
+			}
+
+			// ラベルを更新
+			labelLevel.Text = "Level：" + listLevel.Count.ToString();
+			labelBP.Text = "BP：" + listBP.Count.ToString();
+			labelTex.Text = "Tex：" + listTex.Count.ToString();
+			labelMat.Text = "Mat：" + listMat.Count.ToString();
+			labelMatFunc.Text = "Func：" + listMatFunc.Count.ToString();
+			labelMatInst.Text = "Inst：" + listMatInst.Count.ToString();
+			labelStMesh.Text = "St：" + listStMesh.Count.ToString();
+			labelSkMesh.Text = "Sk：" + listSkMesh.Count.ToString();
+			labelPart.Text = "Part：" + listPart.Count.ToString();
+
+			// 最大行の変数をクリア
+			maxRows = 0;
 		}
-		// ボタン：Data Asset チェック
-		private void btn_DA_Click(object sender, EventArgs e)
+
+		// ボタン：DataGridViewの内容をクリップボードにTSV形式でコピー
+		private void btn_copy_Click(object sender, EventArgs e)
 		{
-			// 命名規則の定義ファイルを読み込んでListに代入
-			listRule = getNamingRule(chkTextDA);
-			// TextBox1の中身をパスと名前別々にListに格納
-			getRefelence(".*?");
-			// 命名規則に引っ掛かるアセットをリストアップ
-			doRegex();
+			// 全選択
+			dataGridView1.SelectAll();
+			// 内容をクリップボードへコピー
+			dataGridView1.ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableAlwaysIncludeHeaderText;
+			Clipboard.SetDataObject(dataGridView1.GetClipboardContent());
+			// クリップボードから取得してコピーし直す（Exelにペースト時に折り返さない対策）
+			Clipboard.SetText(Clipboard.GetText());
 		}
 
 		// キー：テキスト全選択
@@ -270,14 +290,6 @@ namespace MyTool_NamingConventionCheck
 			if (e.Control && e.KeyCode == Keys.A)
 			{
 				textBox1.SelectAll();
-				e.SuppressKeyPress = true;
-			}
-		}
-		private void textBox2_KeyDown(object sender, KeyEventArgs e)
-		{
-			if (e.Control && e.KeyCode == Keys.A)
-			{
-				textBox2.SelectAll();
 				e.SuppressKeyPress = true;
 			}
 		}
